@@ -1,0 +1,1 @@
+gcc *.c -s -Os -lws2_32 -lgdi32 -Wall -Wextra -Wpedantic
