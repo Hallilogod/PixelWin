@@ -1,1 +1,1 @@
-gcc -DDEBUG *.c -g -lws2_32 -lgdi32 -Wall -Wextra -Wpedantic
+gcc -DDEBUG *.c -g -O3 -lws2_32 -lgdi32 -Wall -Wextra -Wpedantic

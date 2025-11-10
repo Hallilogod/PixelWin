@@ -132,6 +132,10 @@ DWORD WINAPI ClientHandlerRoutine(PVOID argument)
     int commandBufferIndex = 0;
     SOCKET clientSocket = (SOCKET)argument;
     DWORD currentTid = GetCurrentThreadId();
+#ifdef DEBUG
+    UINT64 volatile commandHandlerRoutineCycles = 0;
+    UINT volatile commandHandlerCalls = 0;
+#endif
 
     while ((recvResult = recv(clientSocket, dataBuffer, sizeof(dataBuffer), 0)) > 0)
     {
@@ -167,16 +171,31 @@ DWORD WINAPI ClientHandlerRoutine(PVOID argument)
                 commandBuffer[commandBufferIndex] = '\0';
 
                 commandBufferIndex = 0;
-
-                dbgprintf("Handling command %s\n", commandBuffer);
-
+                
+                #ifdef DEBUG
+                    UINT64 tsc = _rdtsc();
+                #endif
                 HandleCommand(commandBuffer, clientSocket);
+
+                #ifdef DEBUG
+                    commandHandlerRoutineCycles += _rdtsc() - tsc;
+
+                    commandHandlerCalls++;
+                #endif
+
                 continue;
             }
 
             commandBuffer[commandBufferIndex++] = dataBuffer[i];
         }
     }
+
+#ifdef DEBUG
+    if(commandHandlerCalls > 0)
+    {
+        dbgprintf("Command handling routine avg cycles: %llu\n", (UINT64)(commandHandlerRoutineCycles / commandHandlerCalls));
+    }
+#endif
 
     closesocket(clientSocket);
 
