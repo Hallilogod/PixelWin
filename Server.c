@@ -38,52 +38,75 @@ SOCKET InitializeServerSocket(unsigned short port)
     return serverSocket;
 }
 
+inline UINT64 StrtolDuff(char* s, UINT strLen)
+{
+    UINT64 val = 0;
+    int n = (strLen + 7) / 8;
+    int i = 0;
+    switch (strLen % 8) {
+    case 0: do {
+                 val = val * 10 + (*(s + i++) - '0');
+    case 7:      val = val * 10 + (*(s + i++) - '0');
+    case 6:      val = val * 10 + (*(s + i++) - '0');
+    case 5:      val = val * 10 + (*(s + i++) - '0');
+    case 4:      val = val * 10 + (*(s + i++) - '0');
+    case 3:      val = val * 10 + (*(s + i++) - '0');
+    case 2:      val = val * 10 + (*(s + i++) - '0');
+    case 1:      val = val * 10 + (*(s + i++) - '0');
+    } while (--n > 0);
+    }
+    return val;
+};
 
-void HandleCommand(_Inout_ char *command, SOCKET clientSocket)
+
+void HandleCommand(_Inout_ char *command, UINT commandStrlen, SOCKET clientSocket)
 {
     if (strncmp(command, "PX ", 3) == 0)
     {   
         UINT x = 0;
         UINT y = 0;
         UINT32 rgb_a = 0; 
-        char* context = NULL;
-        char* substring = NULL;
 
-        command += 3;
+        char* subCommand = command + 3;
+        char* subCommandPost = subCommand;
+        char* commandEnd = command + commandStrlen;
 
-        substring = strtok_s(command, " ", &context);
-
-        if(substring == NULL)
+        if(*subCommand == '\0')
         {
             return;
         }
 
-        x = (UINT)strtoul(substring, NULL, 10);
+        x = (UINT)strtoul(subCommand, &subCommand, 10);
 
-        substring = strtok_s(NULL, " ", &context);
+        while(*subCommand == ' ')
+        {
+            subCommand++;
+        }
 
-        if(substring == NULL)
+        if(*subCommand == '\0')
         {
             return;
         }
         
-        y = (UINT)strtoul(substring, NULL, 10);
+        y = (UINT)strtoul(subCommand, &subCommand, 10);
 
+        while(*subCommand == ' ')
+        {
+            subCommand++;
+        }
 
-        substring = strtok_s(NULL, " ", &context);
-
-        if(substring == NULL)
+        if(*subCommand == '\0')
         {
             return;
         }
 
-        if(_strnicmp(substring, "0x", 2) == 0)
+        if(_strnicmp(subCommand, "0x", 2) == 0)
         {
             return;
         }
 
-        rgb_a = strtoul(substring, NULL, 16);
-        size_t substringLength = strlen(substring);
+        rgb_a = strtoul(subCommand, NULL, 16);
+        size_t substringLength = commandEnd - subCommand;
 
         switch(substringLength)
         {
@@ -129,7 +152,7 @@ DWORD WINAPI ClientHandlerRoutine(PVOID argument)
     char commandBuffer[32 + 1] = {0};
     int recvResult = 0;
     BOOL waitForNextNewline = FALSE;
-    int commandBufferIndex = 0;
+    UINT commandBufferIndex = 0;
     SOCKET clientSocket = (SOCKET)argument;
     DWORD currentTid = GetCurrentThreadId();
 #ifdef DEBUG
@@ -169,20 +192,19 @@ DWORD WINAPI ClientHandlerRoutine(PVOID argument)
             if (dataBuffer[i] == '\n')
             {
                 commandBuffer[commandBufferIndex] = '\0';
-
-                commandBufferIndex = 0;
                 
                 #ifdef DEBUG
                     UINT64 tsc = _rdtsc();
                 #endif
-                HandleCommand(commandBuffer, clientSocket);
+                HandleCommand(commandBuffer, commandBufferIndex, clientSocket);
 
                 #ifdef DEBUG
                     commandHandlerRoutineCycles += _rdtsc() - tsc;
 
                     commandHandlerCalls++;
                 #endif
-
+                
+                commandBufferIndex = 0;
                 continue;
             }
 
