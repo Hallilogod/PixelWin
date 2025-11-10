@@ -38,20 +38,77 @@ SOCKET InitializeServerSocket(unsigned short port)
     return serverSocket;
 }
 
-void HandleCommand(char *command, SOCKET clientSocket)
-{
-    UINT x = 0;
-    UINT y = 0;
-    UINT32 rgb = 0;
 
-    if (sscanf_s(command, "PX %u %u %08x", &x, &y, &rgb) == 3)
-    {
-        CanvasDrawPixel(x, y, rgb);
+void HandleCommand(_Inout_ char *command, SOCKET clientSocket)
+{
+    if (strncmp(command, "PX ", 3) == 0)
+    {   
+        UINT x = 0;
+        UINT y = 0;
+        UINT32 rgb_a = 0; 
+        char* context = NULL;
+        char* substring = NULL;
+
+        command += 3;
+
+        substring = strtok_s(command, " ", &context);
+
+        if(substring == NULL)
+        {
+            return;
+        }
+
+        x = (UINT)strtoul(substring, NULL, 10);
+
+        substring = strtok_s(NULL, " ", &context);
+
+        if(substring == NULL)
+        {
+            return;
+        }
+        
+        y = (UINT)strtoul(substring, NULL, 10);
+
+
+        substring = strtok_s(NULL, " ", &context);
+
+        if(substring == NULL)
+        {
+            return;
+        }
+
+        if(_strnicmp(substring, "0x", 2) == 0)
+        {
+            return;
+        }
+
+        rgb_a = strtoul(substring, NULL, 16);
+        size_t substringLength = strlen(substring);
+
+        switch(substringLength)
+        {
+            case 6:
+            {
+                CanvasDrawPixel(x, y, rgb_a);
+            }
+            break;
+
+            case 8:
+            {
+                CanvasDrawPixelAlpha(x, y, rgb_a);
+            }
+            break;
+
+            default:
+                return;
+            break;
+        }
+
     }
     else if (strncmp(command, "SIZE", 4) == 0)
     {
         char sizeStrBuffer[64];
-        CANVAS_DIMENSIONS canvasDimensions = { 0 };
+        CANVAS_DIMENSIONS canvasDimensions = {0};
 
         GetCanvasDimensions(&canvasDimensions);
 
@@ -59,13 +116,12 @@ void HandleCommand(char *command, SOCKET clientSocket)
 
         send(clientSocket, sizeStrBuffer, strlen(sizeStrBuffer), 0);
     }
-    else if(strncmp(command, "HELP", 4) == 0)
+    else if (strncmp(command, "HELP", 4) == 0)
     {
-        char* helpText = "This is pixelflut, draw something by sending 'PX x y rrggbb(aa)'! Read more at https://github.com/defnull/pixelflut\n";
+        char *helpText = "This is pixelflut, draw something by sending 'PX x y rrggbb(aa)'! Read more at https://github.com/defnull/pixelflut\n";
         send(clientSocket, helpText, strlen(helpText), 0);
     }
 }
-
 
 DWORD WINAPI ClientHandlerRoutine(PVOID argument)
 {

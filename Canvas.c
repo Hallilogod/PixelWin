@@ -27,7 +27,7 @@ void CanvasDrawPixel(LONG x, LONG y, UINT32 rgb)
 
     InterlockedExchange(
         (LONG volatile *)(((LONG volatile *)pixelCanvasBuffer) + (y * canvasWidth + x)),
-        RGB_LE((rgb & 0xFF0000) >> 16, (rgb & 0x00FF00) >> 8, rgb & 0xFF));
+        RGB_RGB((rgb & 0xFF0000) >> 16, (rgb & 0x00FF00) >> 8, rgb & 0xFF));
 }
 
 void CanvasDrawPixelAlpha(LONG x, LONG y, UINT32 rgba)
@@ -37,19 +37,19 @@ void CanvasDrawPixelAlpha(LONG x, LONG y, UINT32 rgba)
         return;
     }
 
-    double alphaA = ((rgba & 0xFF000000) >> 24) / 255;
+    double alphaA = (double)(rgba & 0xFF) / 255;
 
     UINT32 canvasPixel = ((PUINT32)pixelCanvasBuffer)[y * canvasWidth + x];
 
     // Perform alpha composition
-    UINT8 r = alphaA * RGB_R(rgba) + (1 - alphaA) * RGB_LE_R(canvasPixel);
-    UINT8 g = alphaA * RGB_G(rgba) + (1 - alphaA) * RGB_LE_G(canvasPixel);
-    UINT8 b = alphaA * RGB_B(rgba) + (1 - alphaA) * RGB_LE_B(canvasPixel);
+    UINT8 r = alphaA * RGBA_R(rgba) + (1 - alphaA) * RGB_R(canvasPixel);
+    UINT8 g = alphaA * RGBA_G(rgba) + (1 - alphaA) * RGB_G(canvasPixel);
+    UINT8 b = alphaA * RGBA_B(rgba) + (1 - alphaA) * RGB_B(canvasPixel);
 
-    InterlockedExchange((LONG volatile *)(((LONG volatile *)pixelCanvasBuffer) + (y * canvasWidth + x)), RGB_LE(r, g, b));
+    InterlockedExchange((LONG volatile *)(((LONG volatile *)pixelCanvasBuffer) + (y * canvasWidth + x)), RGB_RGB(r, g, b));
 }
 
-LRESULT CALLBACK CanvasWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+static LRESULT CALLBACK CanvasWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 {
     switch (msg)
     {
@@ -66,7 +66,7 @@ LRESULT CALLBACK CanvasWindowProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lPa
     return DefWindowProcA(hwnd, msg, wParam, lParam);
 }
 
-DWORD CanvasThreadProc(PVOID argument)
+static DWORD CanvasThreadProc(PVOID argument)
 {
 
     DWORD windowStyle = WS_OVERLAPPED | WS_SYSMENU | WS_CAPTION | WS_MINIMIZEBOX | WS_VISIBLE;
@@ -128,6 +128,8 @@ DWORD CanvasThreadProc(PVOID argument)
 
         Sleep(5);
     }
+
+    return EXIT_SUCCESS;
 }
 
 BOOL InitializeServerCanvas(LONG width, LONG height)
