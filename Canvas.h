@@ -28,4 +28,6 @@ void CanvasDrawPixel(LONG x, LONG y, UINT32 rgb);
 
 void CanvasDrawPixelAlpha(LONG x, LONG y, UINT32 rgba);
 
+UINT32 CanvasGetPixel(LONG x, LONG y);
+
 

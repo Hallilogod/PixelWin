@@ -11,6 +11,16 @@ void UpdateCanvasWindow(void)
     BitBlt(canvasDC, 0, 0, canvasWidth, canvasHeight, canvasMemDC, 0, 0, SRCCOPY);
 }
 
+UINT32 CanvasGetPixel(LONG x, LONG y)
+{
+    if ((x >= canvasWidth) || (y >= canvasHeight) || (y < 0) || (x < 0))
+    {
+        return 0;
+    }
+
+    return ((PUINT32)pixelCanvasBuffer)[y * canvasWidth + x];
+}
+
 void GetCanvasDimensions(_Out_ CANVAS_DIMENSIONS *pCanvasDimensions)
 {
     pCanvasDimensions->CanvasHeight = canvasHeight;

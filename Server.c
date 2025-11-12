@@ -38,7 +38,7 @@ SOCKET InitializeServerSocket(unsigned short port)
     return serverSocket;
 }
 
-inline UINT64 StrtolDuff(char* s, UINT strLen)
+UINT64 StrtolDuff(char* s, UINT strLen)
 {
     UINT64 val = 0;
     int n = (strLen + 7) / 8;
@@ -56,11 +56,12 @@ inline UINT64 StrtolDuff(char* s, UINT strLen)
     } while (--n > 0);
     }
     return val;
-};
+}
 
 
 void HandleCommand(_Inout_ char *command, UINT commandStrlen, SOCKET clientSocket)
 {
+
     if (strncmp(command, "PX ", 3) == 0)
     {   
         UINT x = 0;
@@ -70,40 +71,75 @@ void HandleCommand(_Inout_ char *command, UINT commandStrlen, SOCKET clientSocke
         char* subCommand = command + 3;
         char* subCommandPost = subCommand;
         char* commandEnd = command + commandStrlen;
-
-        if(*subCommand == '\0')
-        {
-            return;
-        }
-
-        x = (UINT)strtoul(subCommand, &subCommand, 10);
-
-        while(*subCommand == ' ')
-        {
-            subCommand++;
-        }
-
-        if(*subCommand == '\0')
-        {
-            return;
-        }
+        char c;
         
-        y = (UINT)strtoul(subCommand, &subCommand, 10);
-
-        while(*subCommand == ' ')
+        for(;;)
         {
-            subCommand++;
+            c = *subCommandPost;
+
+            if(c == ' ')
+            {
+                break;
+            }
+
+            if(c == '\0')
+            {
+                return;
+            }
+
+            subCommandPost++;
         }
+
+        x = (UINT)StrtolDuff(subCommand, subCommandPost - subCommand);
+
+        subCommandPost++;
+
+        subCommand = subCommandPost;
 
         if(*subCommand == '\0')
         {
             return;
         }
 
-        if(_strnicmp(subCommand, "0x", 2) == 0)
+        for(;;)
         {
+            c = *subCommandPost;
+
+            if(c == ' ')
+            {
+                break;
+            }
+
+            if(c == '\0')
+            {
+                break;
+            }
+
+            subCommandPost++;
+        }
+
+        y = (UINT)StrtolDuff(subCommand, subCommandPost - subCommand);
+
+        // If the command ends after the PX X Y then its asking for the pixel color
+        if(commandEnd == subCommandPost)
+        {   
+            // Six for rrggbb, one for space, one for line feed, one for null terminator
+            char rgbTxtBuffer[9];
+
+            sprintf_s(rgbTxtBuffer, sizeof(rgbTxtBuffer), " %06x\n", CanvasGetPixel(x, y));
+
+            // Since we respond with the same PX X Y but with rrggbb after it, we can first send back the command we got
+            send(clientSocket, command, commandStrlen, 0);
+
+            // Then, send the pixel color
+            send(clientSocket, rgbTxtBuffer, sizeof(rgbTxtBuffer) - 1 /* Don't send null byte */, 0);
+
             return;
         }
+
+        subCommandPost++;
+
+        subCommand = subCommandPost;
 
         rgb_a = strtoul(subCommand, NULL, 16);
         size_t substringLength = commandEnd - subCommand;
@@ -180,7 +216,7 @@ DWORD WINAPI ClientHandlerRoutine(PVOID argument)
                 commandBufferIndex = 0;
 
                 /* If the current char is a newline then the next char is already
-                the next command so wer dont need to wait for a newline */
+                the next command so we dont need to wait for a newline */
                 if (dataBuffer[i] != '\n')
                 {
                     waitForNextNewline = TRUE;
@@ -189,12 +225,19 @@ DWORD WINAPI ClientHandlerRoutine(PVOID argument)
                 continue;
             }
 
-            if (dataBuffer[i] == '\n')
+            char currentBufferChar = dataBuffer[i];
+
+            if(currentBufferChar == '\r')
+            {
+                continue;
+            }
+
+            if (currentBufferChar == '\n')
             {
                 commandBuffer[commandBufferIndex] = '\0';
                 
                 #ifdef DEBUG
-                    UINT64 tsc = _rdtsc();
+                    UINT64 volatile tsc = _rdtsc();
                 #endif
                 HandleCommand(commandBuffer, commandBufferIndex, clientSocket);
 
@@ -208,7 +251,7 @@ DWORD WINAPI ClientHandlerRoutine(PVOID argument)
                 continue;
             }
 
-            commandBuffer[commandBufferIndex++] = dataBuffer[i];
+            commandBuffer[commandBufferIndex++] = currentBufferChar;
         }
     }
 
