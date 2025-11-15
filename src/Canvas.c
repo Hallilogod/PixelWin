@@ -124,7 +124,7 @@ static DWORD CanvasThreadProc(PVOID argument)
     {
         printf("Error creating canvas window, lasterror: %lu\n", GetLastError());
 
-        return EXIT_FAILURE;
+        ExitProcess(EXIT_FAILURE);
     }
 
     canvasDC = GetDC(canvasWndHandle);
@@ -132,7 +132,7 @@ static DWORD CanvasThreadProc(PVOID argument)
     if(canvasDC == NULL)
     {
         printf("Error getting canvas device context\n");
-        return EXIT_FAILURE;
+        ExitProcess(EXIT_FAILURE);
     }
 
     dibSection = CreateDIBSection(canvasDC, &canvasBitmapInfo, DIB_RGB_COLORS, &pixelCanvasBuffer, NULL, 0);
@@ -140,7 +140,7 @@ static DWORD CanvasThreadProc(PVOID argument)
     if(dibSection == NULL)
     {
         printf("Error while creating DIB section, lasterror: %lu\n", GetLastError());
-        return EXIT_FAILURE;
+        ExitProcess(EXIT_FAILURE);
     }
 
     canvasMemDC = CreateCompatibleDC(canvasDC);
@@ -148,7 +148,7 @@ static DWORD CanvasThreadProc(PVOID argument)
     if(canvasDC == NULL)
     {
         printf("Error creating compatible memory device context\n");
-        return EXIT_FAILURE;
+        ExitProcess(EXIT_FAILURE);
     }
 
     SelectObject(canvasMemDC, dibSection);
