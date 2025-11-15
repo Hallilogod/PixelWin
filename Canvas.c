@@ -8,11 +8,14 @@ static volatile LONG canvasHeight = 0;
 
 void UpdateCanvasWindow(void)
 {
+    assert(canvasWidth > 0 && canvasHeight > 0 && canvasDC != NULL);
     BitBlt(canvasDC, 0, 0, canvasWidth, canvasHeight, canvasMemDC, 0, 0, SRCCOPY);
 }
 
 UINT32 CanvasGetPixel(LONG x, LONG y)
 {
+    assert(pixelCanvasBuffer != NULL);
+
     if ((x >= canvasWidth) || (y >= canvasHeight) || (y < 0) || (x < 0))
     {
         return 0;
@@ -23,6 +26,8 @@ UINT32 CanvasGetPixel(LONG x, LONG y)
 
 void GetCanvasDimensions(_Out_ CANVAS_DIMENSIONS *pCanvasDimensions)
 {
+    assert(canvasWidth > 0 && canvasHeight > 0);
+
     pCanvasDimensions->CanvasHeight = canvasHeight;
     pCanvasDimensions->CanvasWidth = canvasWidth;
 }
@@ -30,6 +35,8 @@ void GetCanvasDimensions(_Out_ CANVAS_DIMENSIONS *pCanvasDimensions)
 
 void CanvasDrawPixel(LONG x, LONG y, UINT32 rgb)
 {
+    assert(pixelCanvasBuffer != NULL);
+
     if ((x >= canvasWidth) || (y >= canvasHeight) || (y < 0) || (x < 0))
     {
         return;
@@ -42,6 +49,8 @@ void CanvasDrawPixel(LONG x, LONG y, UINT32 rgb)
 
 void CanvasDrawPixelAlpha(LONG x, LONG y, UINT32 rgba)
 {
+    assert(pixelCanvasBuffer != NULL);
+    
     if ((x >= canvasWidth) || (y >= canvasHeight) || (y < 0) || (x < 0))
     {
         return;
@@ -114,13 +123,33 @@ static DWORD CanvasThreadProc(PVOID argument)
     if (canvasWndHandle == NULL)
     {
         printf("Error creating canvas window, lasterror: %lu\n", GetLastError());
+
+        return EXIT_FAILURE;
     }
 
     canvasDC = GetDC(canvasWndHandle);
 
+    if(canvasDC == NULL)
+    {
+        printf("Error getting canvas device context\n");
+        return EXIT_FAILURE;
+    }
+
     dibSection = CreateDIBSection(canvasDC, &canvasBitmapInfo, DIB_RGB_COLORS, &pixelCanvasBuffer, NULL, 0);
 
+    if(dibSection == NULL)
+    {
+        printf("Error while creating DIB section, lasterror: %lu\n", GetLastError());
+        return EXIT_FAILURE;
+    }
+
     canvasMemDC = CreateCompatibleDC(canvasDC);
+
+    if(canvasDC == NULL)
+    {
+        printf("Error creating compatible memory device context\n");
+        return EXIT_FAILURE;
+    }
 
     SelectObject(canvasMemDC, dibSection);
 
@@ -136,7 +165,7 @@ static DWORD CanvasThreadProc(PVOID argument)
             DispatchMessageA(&windowMsg);
         }
 
-        Sleep(5);
+        Sleep(10);
     }
 
     return EXIT_SUCCESS;
@@ -146,6 +175,7 @@ BOOL InitializeServerCanvas(LONG width, LONG height)
 {
     DWORD tid = 0;
     CANVAS_DIMENSIONS *pCanvasArguments = malloc(sizeof(CANVAS_DIMENSIONS));
+
     if (pCanvasArguments == NULL)
     {
         printf("Failed to allocate buffer for canvas thread arguments\n");

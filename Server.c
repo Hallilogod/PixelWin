@@ -38,7 +38,7 @@ SOCKET InitializeServerSocket(unsigned short port)
     return serverSocket;
 }
 
-UINT64 StrtolDuff(char* s, UINT strLen)
+static UINT64 StrtolDuff(char* s, UINT strLen)
 {
     UINT64 val = 0;
     int n = (strLen + 7) / 8;
@@ -61,7 +61,6 @@ UINT64 StrtolDuff(char* s, UINT strLen)
 
 void HandleCommand(_Inout_ char *command, UINT commandStrlen, SOCKET clientSocket)
 {
-
     if (strncmp(command, "PX ", 3) == 0)
     {   
         UINT x = 0;
