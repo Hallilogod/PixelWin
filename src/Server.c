@@ -38,26 +38,38 @@ SOCKET InitializeServerSocket(unsigned short port)
     return serverSocket;
 }
 
-static UINT64 StrtolDuff(char* s, UINT strLen)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wimplicit-fallthrough"
+static UINT64 StrtolDuff(char *s, UINT strLen)
 {
     UINT64 val = 0;
     int n = (strLen + 7) / 8;
     int i = 0;
-    switch (strLen % 8) {
-    case 0: do {
-                 val = val * 10 + (*(s + i++) - '0');
-    case 7:      val = val * 10 + (*(s + i++) - '0');
-    case 6:      val = val * 10 + (*(s + i++) - '0');
-    case 5:      val = val * 10 + (*(s + i++) - '0');
-    case 4:      val = val * 10 + (*(s + i++) - '0');
-    case 3:      val = val * 10 + (*(s + i++) - '0');
-    case 2:      val = val * 10 + (*(s + i++) - '0');
-    case 1:      val = val * 10 + (*(s + i++) - '0');
-    } while (--n > 0);
+    switch (strLen % 8)
+    {
+    case 0:
+        do
+        {
+            val = val * 10 + (*(s + i++) - '0');
+        case 7:
+            val = val * 10 + (*(s + i++) - '0');
+        case 6:
+            val = val * 10 + (*(s + i++) - '0');
+        case 5:
+            val = val * 10 + (*(s + i++) - '0');
+        case 4:
+            val = val * 10 + (*(s + i++) - '0');
+        case 3:
+            val = val * 10 + (*(s + i++) - '0');
+        case 2:
+            val = val * 10 + (*(s + i++) - '0');
+        case 1:
+            val = val * 10 + (*(s + i++) - '0');
+        } while (--n > 0);
     }
     return val;
 }
-
+#pragma GCC diagnostic pop
 
 void HandleCommand(_Inout_ char *command, UINT commandStrlen, SOCKET clientSocket)
 {
@@ -189,8 +201,8 @@ DWORD WINAPI ClientHandlerRoutine(PVOID argument)
     BOOL waitForNextNewline = FALSE;
     UINT commandBufferIndex = 0;
     SOCKET clientSocket = (SOCKET)argument;
-    DWORD currentTid = GetCurrentThreadId();
 #ifdef DEBUG
+    DWORD currentTid = GetCurrentThreadId();
     UINT64 volatile commandHandlerRoutineCycles = 0;
     UINT volatile commandHandlerCalls = 0;
 #endif
